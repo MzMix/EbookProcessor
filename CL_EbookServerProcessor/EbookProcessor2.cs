@@ -1,5 +1,9 @@
-﻿using System.Text.Json;
+﻿using System.Collections;
+using System.Text;
+using System.Text.Json;
+using ExCSS;
 using NUglify;
+using NUglify.Helpers;
 using NUglify.Html;
 using VersOne.Epub;
 using HtmlDocument = HtmlAgilityPack.HtmlDocument;
@@ -9,8 +13,8 @@ namespace CL_EbookServerProcessor
 {
     public class EbookProcessor2 : BaseEbookProcessor
     {
-        readonly HtmlSettings _htmlSettings = HtmlSettings.Pretty();
-        
+        private readonly HtmlSettings _htmlSettings = HtmlSettings.Pretty();
+
         public EbookProcessor2(Guid ebookGuid, string ebookPath, string fileSaveLocation, string imageServer, BaseLogger logger) : base(ebookGuid, ebookPath, fileSaveLocation, imageServer, logger)
         {
             _htmlSettings.RemoveAttributeQuotes = false;
@@ -26,32 +30,85 @@ namespace CL_EbookServerProcessor
             SaveImagesToWorkingDirectory();
             SaveCssStylesToWorkingDirectory();
             SaveFontsToWorkingDirectory();
-            ProcessXhtmlFile();
+            ProcessXhtmlFiles();
         }
 
-        private void ProcessXhtmlFile()
+        private static string StripFileName(string fileName)
+        {
+            var splitPoint = fileName.LastIndexOfAny(new[] { '/', '\\' });
+            return fileName[(splitPoint + 1)..];
+        }
+
+        private void ProcessXhtmlFiles()
+        {
+            /*            try
+                        {*/
+            var readingOrder = BookRef?.GetReadingOrder();
+
+            if (WorkingDirectoryPath == null)
+                throw new Exception("Working directory not set!");
+
+            if (readingOrder == null) return;
+            foreach (var file in readingOrder)
+            {
+                var htmlBody = ExtractBody(file.ReadContentAsText()) ?? throw new Exception($"Can't find body tag in file {file.Key}");
+                ProcessImages(htmlBody);
+
+                var path = Path.Combine(WorkingDirectoryPath, StripFileName(file.Key));
+                SaveXhtml(path, Uglify.Html(htmlBody?.InnerHtml, _htmlSettings).ToString());
+                Logger.LogMessage($"Saved file: {path}");
+            }
+            /*}
+            catch (Exception exception)
+            {
+                Logger.LogMessage(exception);
+            }*/
+        }
+
+        private string ProcessCssFile(string cssContent)
         {
             try
             {
-                var readingOrder = BookRef?.GetReadingOrder();
+                var parser = new StylesheetParser();
+                var stylesheet = parser.Parse(cssContent);
+                var rules = stylesheet.FontfaceSetRules;
 
-                if (WorkingDirectoryPath == null)
-                    throw new Exception("Working directory not set!");
-                
-                if (readingOrder == null) return;
-                foreach (var file in readingOrder)
+                rules.ForEach(x =>
                 {
-                    var htmlBody = ExtractBody(file.ReadContentAsText());
-                    ProcessImages(htmlBody);
+                    var source = x.Source;
 
-                    var path = Path.Combine(WorkingDirectoryPath, file.Key);
-                    SaveXhtml(path, Uglify.Html(htmlBody.InnerHtml, _htmlSettings).ToString());
-                    Logger.LogMessage($"Saved file: {path}");
-                }
+                    var startPoint = source.IndexOf('"');
+                    var endPoint = source.LastIndexOf('"');
+                    var fileName = StripFileName(source.Substring(startPoint + 1, (endPoint - startPoint - 1)));
+                    var modifiedSource = $"url({ImageServer}{EbookGuid}/{fileName})";
+                    x.Source = modifiedSource;
+
+                    Console.WriteLine(modifiedSource);
+                });
+
+                //THIS IS STUPID BY I HAVE NO OTHER IDEA AT THIS POINT
+                StringBuilder sb = new();
+                foreach (var content in stylesheet.FontfaceSetRules)
+                    sb.Append(content.Text);
+                foreach (var content in stylesheet.CharacterSetRules)
+                    sb.Append(content.Text);
+                foreach (var content in stylesheet.ImportRules)
+                    sb.Append(content.Text);
+                foreach (var content in stylesheet.MediaRules)
+                    sb.Append(content.Text);
+                foreach (var content in stylesheet.NamespaceRules)
+                    sb.Append(content.Text);
+                foreach (var content in stylesheet.PageRules)
+                    sb.Append(content.Text);
+                foreach (var content in stylesheet.StyleRules)
+                    sb.Append(content.Text);
+
+                return sb.ToString();
             }
             catch (Exception exception)
             {
-                Logger.LogMessage(exception.Message);
+                Logger.LogMessage(exception);
+                return "";
             }
         }
 
@@ -73,16 +130,16 @@ namespace CL_EbookServerProcessor
 
                 foreach (var (key, value) in styleDictionary)
                 {
-                    var minifiedStyle = Uglify.Css(value).ToString();
+                    var processedCss = ProcessCssFile(value);
 
-                    var path = Path.Combine(WorkingDirectoryPath, key);
-                    SaveFile(path, minifiedStyle);
+                    var path = Path.Combine(WorkingDirectoryPath, StripFileName(key));
+                    SaveFile(path, processedCss);
                     Logger.LogMessage($"Saved style file: {path}.");
                 }
             }
             catch (Exception exception)
             {
-                Logger.LogMessage(exception.Message);
+                Logger.LogMessage(exception);
             }
         }
 
@@ -104,38 +161,51 @@ namespace CL_EbookServerProcessor
 
                 foreach (var (key, value) in fontDictionary)
                 {
-                    var path = Path.Combine(WorkingDirectoryPath, key);
+                    var path = Path.Combine(WorkingDirectoryPath, StripFileName(key));
                     File.WriteAllBytes(path, value);
                     Logger.LogMessage($"Saved font: {path}.");
                 }
             }
             catch (Exception exception)
             {
-                Logger.LogMessage(exception.Message);
+                Logger.LogMessage(exception);
             }
         }
 
         private static HtmlNode ExtractBody(string content)
         {
             var htmlDoc = new HtmlDocument();
-            var fileContent = content;
-            htmlDoc.LoadHtml(fileContent);
+            htmlDoc.LoadHtml(content);
             var htmlBody = htmlDoc.DocumentNode.SelectSingleNode("//body");
-
+            
+            //It can't find body tag in the Elon Musk epub
+            if (htmlBody == null)
+            {
+                var tmp = htmlDoc.DocumentNode.ChildNodes;
+            }
+            
             return htmlBody;
         }
-        private void ProcessImages(HtmlNode parentNode)
+        private void ProcessImages(HtmlNode? parentNode)
         {
-            var images = parentNode.SelectNodes("img");
-            if (images == null) return;
-
-            foreach (var htmlNode in images)
+            try
             {
-                var value = htmlNode.GetAttributeValue("src", null);
-                if (value == null) return;
+                var images = parentNode?.SelectNodes("//img");
+                if (images == null) return;
 
-                htmlNode.SetAttributeValue("src", ImageServer + value);
+                foreach (var htmlNode in images)
+                {
+                    var value = htmlNode.GetAttributeValue("src", null);
+                    if (value == null) return;
+
+                    htmlNode.SetAttributeValue("src", $"{ImageServer}/{EbookGuid}/{value}");
+                }
             }
+            catch (Exception exception)
+            {
+                Logger.LogMessage(exception);
+            }
+
         }
         private void OpenEbook() => BookRef = EpubReader.OpenBook(EbookPath);
 
@@ -143,7 +213,7 @@ namespace CL_EbookServerProcessor
         {
             try
             {
-                var readingOrder = BookRef?.GetReadingOrder().Select(x => x.Key);
+                var readingOrder = BookRef?.GetReadingOrder().Select(x => StripFileName(x.Key));
 
                 if (WorkingDirectoryPath == null)
                     throw new Exception("Working directory not set!");
@@ -161,7 +231,7 @@ namespace CL_EbookServerProcessor
             }
             catch (Exception exception)
             {
-                Logger.LogMessage(exception.Message);
+                Logger.LogMessage(exception);
             }
         }
         protected override void SaveImagesToWorkingDirectory()
@@ -182,14 +252,14 @@ namespace CL_EbookServerProcessor
 
                 foreach (var (key, value) in imageDictionary)
                 {
-                    var path = Path.Combine(WorkingDirectoryPath, key);
+                    var path = Path.Combine(WorkingDirectoryPath, StripFileName(key));
                     File.WriteAllBytes(path, value);
                     Logger.LogMessage($"Saved image: {path}.");
                 }
             }
             catch (Exception exception)
             {
-                Logger.LogMessage(exception.Message);
+                Logger.LogMessage(exception);
             }
         }
 
