@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.6.33815.320
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EbookServerProcessor-Experiment", "EbookServerProcessor-Experiment.csproj", "{018706F4-35BA-49AE-B4FD-384010DC25E3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CL_EbookServerProcessor", "..\CL_EbookServerProcessor\CL_EbookServerProcessor.csproj", "{23ABABE9-FFD4-4189-917F-4EF6A4A81CB1}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{018706F4-35BA-49AE-B4FD-384010DC25E3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{018706F4-35BA-49AE-B4FD-384010DC25E3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{018706F4-35BA-49AE-B4FD-384010DC25E3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{018706F4-35BA-49AE-B4FD-384010DC25E3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{23ABABE9-FFD4-4189-917F-4EF6A4A81CB1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{23ABABE9-FFD4-4189-917F-4EF6A4A81CB1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{23ABABE9-FFD4-4189-917F-4EF6A4A81CB1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{23ABABE9-FFD4-4189-917F-4EF6A4A81CB1}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {FF9078EB-C625-4D92-8734-C8EF03A57A29}
+	EndGlobalSection
+EndGlobal
