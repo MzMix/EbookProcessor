@@ -20,7 +20,9 @@ namespace EbookServerProcessor_Experiment
             const string imageServer = @"http://localhost:8000";
             Guid sampleGuid = Guid.Parse("81a130d2-502f-4cf1-a376-63edeb000e9f");
 
-            var ebookProcessor = new EbookProcessor(sampleGuid, ebookPath, fileSave, imageServer);
+            var logger = new ConsoleLogger();
+
+            var ebookProcessor = new EbookProcessor2(sampleGuid, ebookPath, fileSave, imageServer, logger);
             ebookProcessor.Process();
         }
     }

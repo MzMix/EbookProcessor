@@ -6,7 +6,7 @@ namespace CL_EbookServerProcessor
 {
     public class EbookProcessor : BaseEbookProcessor
     {
-        public EbookProcessor(Guid ebookGuid, string ebookPath, string fileSaveLocation, string imageServer) : base(ebookGuid, ebookPath, fileSaveLocation, imageServer)
+        public EbookProcessor(Guid ebookGuid, string ebookPath, string fileSaveLocation, string imageServer, BaseLogger logger) : base(ebookGuid, ebookPath, fileSaveLocation, imageServer, logger)
         {
         }
 
@@ -14,29 +14,10 @@ namespace CL_EbookServerProcessor
         {
             CreateWorkingDirectory();
             OpenEbook();
-            SaveReadingList();
+            SaveReadingOrder();
             SaveImagesToWorkingDirectory();
             
             ProcessXhtmlFiles();
-        }
-        private void CreateWorkingDirectory()
-        {
-            try
-            {
-                WorkingDirectoryPath = Path.Combine(FileSaveLocation, EbookGuid.ToString());
-
-                if (Directory.Exists(WorkingDirectoryPath))
-                {
-                    throw new Exception($"Directory: {WorkingDirectoryPath} exists!");
-                }
-
-                Directory.CreateDirectory(WorkingDirectoryPath);
-            }
-            catch (Exception exception)
-            {
-                Console.WriteLine(exception.Message);
-            }
-
         }
 
         private void OpenEbook()
@@ -56,7 +37,7 @@ namespace CL_EbookServerProcessor
             ReadingOrderFiles.Add(navRef.Link.ContentFileUrl);
         }
 
-        private void SaveReadingList()
+        protected override void SaveReadingOrder()
         {
             try
             {
@@ -71,7 +52,7 @@ namespace CL_EbookServerProcessor
             }
             catch (Exception exception)
             {
-                Console.WriteLine(exception.Message);
+                Logger.LogMessage(exception.Message);
             }
         }
 
@@ -96,11 +77,11 @@ namespace CL_EbookServerProcessor
             }
             catch (Exception exception)
             {
-                Console.WriteLine(exception.Message);
+                Logger.LogMessage(exception.Message);
             }
         }
 
-        private void SaveImagesToWorkingDirectory()
+        protected override void SaveImagesToWorkingDirectory()
         {
             var images = BookRef?.Content.Images.Local;
             if (images == null) return;
