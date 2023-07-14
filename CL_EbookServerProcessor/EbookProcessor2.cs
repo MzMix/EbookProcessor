@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.IO;
 using System.Text;
 using System.Text.Json;
 using ExCSS;
@@ -41,28 +42,45 @@ namespace CL_EbookServerProcessor
 
         private void ProcessXhtmlFiles()
         {
-            /*            try
-                        {*/
-            var readingOrder = BookRef?.GetReadingOrder();
-
-            if (WorkingDirectoryPath == null)
-                throw new Exception("Working directory not set!");
-
-            if (readingOrder == null) return;
-            foreach (var file in readingOrder)
+            try
             {
-                var htmlBody = ExtractBody(file.ReadContentAsText()) ?? throw new Exception($"Can't find body tag in file {file.Key}");
-                ProcessImages(htmlBody);
+                var readingOrder = BookRef?.GetReadingOrder();
 
-                var path = Path.Combine(WorkingDirectoryPath, StripFileName(file.Key));
-                SaveXhtml(path, Uglify.Html(htmlBody?.InnerHtml, _htmlSettings).ToString());
-                Logger.LogMessage($"Saved file: {path}");
+                if (WorkingDirectoryPath == null)
+                    throw new Exception("Working directory not set!");
+
+                if (readingOrder == null) return;
+                foreach (var file in readingOrder)
+                {
+                    var htmlBody = ExtractBody(file.ReadContentAsText());
+                    var path = Path.Combine(WorkingDirectoryPath, StripFileName(file.Key));
+                    string? content = "";
+
+                    if (htmlBody != null)
+                    {
+                        ProcessImages(htmlBody);
+                        content = htmlBody?.InnerHtml;
+                    }
+                    else
+                    {
+                        var html = RemoveToTag(file.ReadContentAsText(), "<body>");
+                        html = RemoveFromTag(html, "</body>");
+
+                        var htmlDoc = new HtmlDocument();
+                        htmlDoc.LoadHtml(html);
+
+                        ProcessImages(htmlDoc.DocumentNode);
+                        content = htmlDoc.DocumentNode?.InnerHtml;
+                    }
+                    SaveXhtml(path, Uglify.Html(content, _htmlSettings).ToString());
+                    Logger.LogMessage($"Saved file: {path}");
+
+                }
             }
-            /*}
             catch (Exception exception)
             {
                 Logger.LogMessage(exception);
-            }*/
+            }
         }
 
         private string ProcessCssFile(string cssContent)
@@ -172,20 +190,42 @@ namespace CL_EbookServerProcessor
             }
         }
 
-        private static HtmlNode ExtractBody(string content)
+        private static HtmlNode? ExtractBody(string content)
         {
             var htmlDoc = new HtmlDocument();
             htmlDoc.LoadHtml(content);
-            var htmlBody = htmlDoc.DocumentNode.SelectSingleNode("//body");
-            
-            //It can't find body tag in the Elon Musk epub
-            if (htmlBody == null)
-            {
-                var tmp = htmlDoc.DocumentNode.ChildNodes;
-            }
-            
-            return htmlBody;
+            var htmlContent = htmlDoc.DocumentNode.SelectSingleNode("//body");
+
+            return htmlContent;
         }
+
+        private string RemoveToTag(string content, string tag)
+        {
+            var index = content.IndexOf(tag, StringComparison.Ordinal);
+            var count = index + tag.Length;
+
+            if (index != -1) return content.Remove(0, count);
+
+            index = content.IndexOf(tag[..^1], StringComparison.Ordinal);
+            count = content.IndexOf('>', index) + 1;
+
+            return content.Remove(0, count);
+        }
+
+        private string RemoveFromTag(string content, string tag)
+        {
+            var index = content.IndexOf(tag, StringComparison.Ordinal);
+            var count = content.Length - index - tag.Length;
+
+            if (index != -1) return content.Remove(index, count);
+
+            index = content.IndexOf(tag[..^1], StringComparison.Ordinal);
+            index = content.IndexOf('>', index) + 1;
+            count = content.Length - index - tag.Length;
+
+            return content.Remove(index, count);
+        }
+
         private void ProcessImages(HtmlNode? parentNode)
         {
             try
@@ -198,7 +238,7 @@ namespace CL_EbookServerProcessor
                     var value = htmlNode.GetAttributeValue("src", null);
                     if (value == null) return;
 
-                    htmlNode.SetAttributeValue("src", $"{ImageServer}/{EbookGuid}/{value}");
+                    htmlNode.SetAttributeValue("src", $"{ImageServer}{EbookGuid}/{StripFileName(value)}");
                 }
             }
             catch (Exception exception)
@@ -207,7 +247,18 @@ namespace CL_EbookServerProcessor
             }
 
         }
-        private void OpenEbook() => BookRef = EpubReader.OpenBook(EbookPath);
+
+        private void OpenEbook()
+        {
+            try
+            {
+                BookRef = EpubReader.OpenBook(EbookPath);
+            }
+            catch (Exception exception)
+            {
+                Logger.LogMessage(exception);
+            }
+        }
 
         protected override void SaveReadingOrder()
         {
@@ -234,6 +285,7 @@ namespace CL_EbookServerProcessor
                 Logger.LogMessage(exception);
             }
         }
+
         protected override void SaveImagesToWorkingDirectory()
         {
             try
