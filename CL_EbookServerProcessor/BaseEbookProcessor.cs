@@ -1,6 +1,4 @@
-﻿using System.Globalization;
-using System.IO;
-using VersOne.Epub;
+﻿using VersOne.Epub;
 
 namespace CL_EbookServerProcessor
 {
@@ -11,27 +9,24 @@ namespace CL_EbookServerProcessor
         protected readonly Guid EbookGuid;
         protected readonly string EbookPath;
         protected readonly string FileSaveLocation;
-        protected readonly string ImageServer;
+        protected readonly string ResourceServer;
 
         protected EpubBookRef? BookRef;
         protected readonly List<string> ReadingOrderFiles = new();
         protected string? WorkingDirectoryPath;
 
 
-        protected BaseEbookProcessor(Guid ebookGuid, string ebookPath, string fileSaveLocation, string imageServer, BaseLogger logger)
+        protected BaseEbookProcessor(Guid ebookGuid, string ebookPath, string fileSaveLocation, string resourceServer, BaseLogger logger)
         {
             EbookGuid = ebookGuid;
             EbookPath = ebookPath;
             FileSaveLocation = fileSaveLocation;
-            ImageServer = imageServer;
+            ResourceServer = resourceServer;
             Logger = logger;
 
-            if (!ImageServer.EndsWith('/')) ImageServer = $"{ImageServer}/";
+            if (!ResourceServer.EndsWith('/')) ResourceServer = $"{ResourceServer}/";
         }
         public abstract void Process();
-
-        protected abstract void SaveImagesToWorkingDirectory();
-        protected abstract void SaveReadingOrder();
 
         protected static void SaveFile(string path, string data)
         {

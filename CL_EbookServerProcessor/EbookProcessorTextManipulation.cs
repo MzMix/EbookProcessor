@@ -4,9 +4,9 @@ using VersOne.Epub;
 
 namespace CL_EbookServerProcessor
 {
-    public class EbookProcessor : BaseEbookProcessor
+    public class EbookProcessorTextManipulation : BaseEbookProcessor
     {
-        public EbookProcessor(Guid ebookGuid, string ebookPath, string fileSaveLocation, string imageServer, BaseLogger logger) : base(ebookGuid, ebookPath, fileSaveLocation, imageServer, logger)
+        public EbookProcessorTextManipulation(Guid ebookGuid, string ebookPath, string fileSaveLocation, string resourceServer, BaseLogger logger) : base(ebookGuid, ebookPath, fileSaveLocation, resourceServer, logger)
         {
         }
 
@@ -37,7 +37,7 @@ namespace CL_EbookServerProcessor
             ReadingOrderFiles.Add(navRef.Link.ContentFileUrl);
         }
 
-        protected override void SaveReadingOrder()
+        protected virtual void SaveReadingOrder()
         {
             try
             {
@@ -81,7 +81,7 @@ namespace CL_EbookServerProcessor
             }
         }
 
-        protected override void SaveImagesToWorkingDirectory()
+        protected virtual void SaveImagesToWorkingDirectory()
         {
             var images = BookRef?.Content.Images.Local;
             if (images == null) return;
@@ -103,7 +103,7 @@ namespace CL_EbookServerProcessor
             var searchTerm = "src=" + '"';
             var srcIndexStart = content.IndexOf(searchTerm, StringComparison.Ordinal) + searchTerm.Length;
 
-            var serverPath = $"{ImageServer}/{EbookGuid}/";
+            var serverPath = $"{ResourceServer}/{EbookGuid}/";
 
             while (!Char.IsLetterOrDigit(content[srcIndexStart])) srcIndexStart++;
             var pathInserted = content.Insert(srcIndexStart, serverPath);

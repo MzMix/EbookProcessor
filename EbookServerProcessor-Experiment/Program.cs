@@ -1,13 +1,4 @@
-﻿/*
- * Create directory using passed Guid as a name DONE
- * Open .epub file DONE
- * Create list of all html files in reading order DONE
- * Remove tags: html, body and section head DONE
- * (?) Remove additional \n DONE
- * Change all image paths to use server specific absolute urls DONE
- */
-
-using CL_EbookServerProcessor;
+﻿using CL_EbookServerProcessor;
 
 namespace EbookServerProcessor_Experiment
 {
@@ -24,7 +15,7 @@ namespace EbookServerProcessor_Experiment
 
             var logger = new SerilogConsoleLogger();
 
-            var ebookProcessor = new EbookProcessor2(sampleGuid, ebookPath, fileSave, imageServer, logger);
+            var ebookProcessor = new EbookProcessorHtmlParser(sampleGuid, ebookPath, fileSave, imageServer, logger);
             ebookProcessor.Process();
         }
     }

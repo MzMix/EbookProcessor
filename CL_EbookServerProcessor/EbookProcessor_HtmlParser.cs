@@ -1,26 +1,43 @@
-﻿using System.Text;
-using System.Text.Json;
-using ExCSS;
+﻿using ExCSS;
 using NUglify;
 using NUglify.Helpers;
 using NUglify.Html;
+using System.Text;
+using System.Text.Json;
 using VersOne.Epub;
 using HtmlDocument = HtmlAgilityPack.HtmlDocument;
 using HtmlNode = HtmlAgilityPack.HtmlNode;
 
 namespace CL_EbookServerProcessor
 {
-    public class EbookProcessor2 : BaseEbookProcessor
+    ///<summary>
+    ///Class <c>EbookProcessorHtmlParser</c> processes epub ebook using parsing based on <c>HtmlAgilityPack</c>, <c>NUglify</c>.
+    ///</summary>
+    public class EbookProcessorHtmlParser : BaseEbookProcessor
     {
+        /// <summary>
+        /// Settings object for html minifier.
+        /// </summary>
         private readonly HtmlSettings _htmlSettings = HtmlSettings.Pretty();
 
-        public EbookProcessor2(Guid ebookGuid, string ebookPath, string fileSaveLocation, string imageServer, BaseLogger logger) : base(ebookGuid, ebookPath, fileSaveLocation, imageServer, logger)
+        /// <summary>
+        /// Default constructor for HtmlSettings class.
+        /// </summary>
+        /// <param name="ebookGuid">Guid of ebook used to create directory to store all files</param>
+        /// <param name="ebookPath">Path to the epub file</param>
+        /// <param name="fileSaveLocation">Location of output directory where all files will be saved in a new Guid-based directory</param>
+        /// <param name="resourceServer">Url for server that will host all resources</param>
+        /// <param name="logger">Logger class to handle exceptions and logs</param>
+        public EbookProcessorHtmlParser(Guid ebookGuid, string ebookPath, string fileSaveLocation, string resourceServer, BaseLogger logger) : base(ebookGuid, ebookPath, fileSaveLocation, resourceServer, logger)
         {
             _htmlSettings.RemoveAttributeQuotes = false;
             _htmlSettings.IsFragmentOnly = true;
             _htmlSettings.Indent = "";
         }
 
+        /// <summary>
+        /// Process epub book to a catalog named using provided Guid, extract all files to that directory.
+        /// </summary>
         public override void Process()
         {
             OpenEbook();
@@ -33,11 +50,14 @@ namespace CL_EbookServerProcessor
             ProcessXhtmlFiles();
         }
 
+        /// <summary>
+        /// Create a list of all used css files in a styleList.json file.
+        /// </summary>
         private void SaveStyleList()
         {
             try
             {
-                var cssList = BookRef?.Content.Css.Local.Select(x => $"{ImageServer}{EbookGuid}/{StripFileName(x.Key)}");
+                var cssList = BookRef?.Content.Css.Local.Select(x => $"{ResourceServer}{EbookGuid}/{StripFileName(x.Key)}");
 
                 if (WorkingDirectoryPath == null)
                     throw new Exception("Working directory not set!");
@@ -59,12 +79,36 @@ namespace CL_EbookServerProcessor
             }
         }
 
+        /// <summary>
+        /// Remove leading characters from remove path to extract file name.
+        /// <example>
+        /// <br></br>
+        /// For example:
+        /// <code>
+        /// var fileName = "abc/123/file.txt";
+        /// var out = StripFileName(fileName);
+        /// </code>
+        /// results in <c>out</c> having value of "file.txt"
+        /// </example>
+        /// </summary>
+        /// <param name="fileName">File name(path) to strip</param>
+        /// <returns></returns>
+
         private static string StripFileName(string fileName)
         {
             var splitPoint = fileName.LastIndexOfAny(new[] { '/', '\\' });
             return fileName[(splitPoint + 1)..];
         }
 
+        /// <summary>
+        /// Method used to process xhtml file:
+        /// <list type="bullet">
+        ///<item><description>Extract xhtml files</description></item>
+        ///<item><description>Extract body section from each file</description></item>
+        ///<item><description>Update path for all images in each file</description></item>
+        ///<item><description>Save file in the working directory</description></item>
+        /// </list>
+        /// </summary>
         private void ProcessXhtmlFiles()
         {
             try
@@ -99,7 +143,6 @@ namespace CL_EbookServerProcessor
                     }
                     SaveXhtml(path, Uglify.Html(content, _htmlSettings).ToString());
                     Logger.LogMessage($"Saved file: {path}");
-
                 }
             }
             catch (Exception exception)
@@ -108,6 +151,11 @@ namespace CL_EbookServerProcessor
             }
         }
 
+        /// <summary>
+        /// Modifies all urls for fonts being imported.
+        /// </summary>
+        /// <param name="cssContent">Contents of a css file</param>
+        /// <returns></returns>
         private string ProcessCssFile(string cssContent)
         {
             try
@@ -123,7 +171,7 @@ namespace CL_EbookServerProcessor
                     var startPoint = source.IndexOf('"');
                     var endPoint = source.LastIndexOf('"');
                     var fileName = StripFileName(source.Substring(startPoint + 1, (endPoint - startPoint - 1)));
-                    var modifiedSource = $"url({ImageServer}{EbookGuid}/{fileName})";
+                    var modifiedSource = $"url({ResourceServer}{EbookGuid}/{fileName})";
                     x.Source = modifiedSource;
 
                     Console.WriteLine(modifiedSource);
@@ -155,6 +203,9 @@ namespace CL_EbookServerProcessor
             }
         }
 
+        /// <summary>
+        /// Saves all css files to output directory after processing them using <c>ProcessCssFile</c>.
+        /// </summary>
         private void SaveCssStylesToWorkingDirectory()
         {
             try
@@ -186,6 +237,9 @@ namespace CL_EbookServerProcessor
             }
         }
 
+        /// <summary>
+        /// Saves all font files to output directory
+        /// </summary>
         private void SaveFontsToWorkingDirectory()
         {
             try
@@ -215,6 +269,11 @@ namespace CL_EbookServerProcessor
             }
         }
 
+        /// <summary>
+        /// Extracts body section from provided html string using HtmlAgilityPack's parser. In case parser fails it uses string manipulation to extract body section.
+        /// </summary>
+        /// <param name="content">Html in string form</param>
+        /// <returns></returns>
         private static HtmlNode? ExtractBody(string content)
         {
             var htmlDoc = new HtmlDocument();
@@ -224,6 +283,12 @@ namespace CL_EbookServerProcessor
             return htmlContent;
         }
 
+        /// <summary>
+        /// Utility function to remove everything in passed string up to the end of provided tag.
+        /// </summary>
+        /// <param name="content">Html in string form</param>
+        /// <param name="tag">Html tag used to find</param>
+        /// <returns></returns>
         private static string RemoveToTag(string content, string tag)
         {
             var index = content.IndexOf(tag, StringComparison.Ordinal);
@@ -237,6 +302,12 @@ namespace CL_EbookServerProcessor
             return content.Remove(0, count);
         }
 
+        /// <summary>
+        /// Utility function to remove everything in passed string after the start of provided tag.
+        /// </summary>
+        /// <param name="content">Html in string form</param>
+        /// <param name="tag">Html tag used to find</param>
+        /// <returns></returns>
         private static string RemoveFromTag(string content, string tag)
         {
             var index = content.IndexOf(tag, StringComparison.Ordinal);
@@ -251,6 +322,10 @@ namespace CL_EbookServerProcessor
             return content.Remove(index, count);
         }
 
+        /// <summary>
+        /// Updates paths to all images in provided part of a document.
+        /// </summary>
+        /// <param name="parentNode">HtmlNode used as a starting point to look for image tags.</param>
         private void ProcessImages(HtmlNode? parentNode)
         {
             try
@@ -263,16 +338,18 @@ namespace CL_EbookServerProcessor
                     var value = htmlNode.GetAttributeValue("src", null);
                     if (value == null) return;
 
-                    htmlNode.SetAttributeValue("src", $"{ImageServer}{EbookGuid}/{StripFileName(value)}");
+                    htmlNode.SetAttributeValue("src", $"{ResourceServer}{EbookGuid}/{StripFileName(value)}");
                 }
             }
             catch (Exception exception)
             {
                 Logger.LogMessage(exception);
             }
-
         }
 
+        /// <summary>
+        /// Opens epub ebook and loads it into memory.
+        /// </summary>
         private void OpenEbook()
         {
             try
@@ -285,7 +362,10 @@ namespace CL_EbookServerProcessor
             }
         }
 
-        protected override void SaveReadingOrder()
+        /// <summary>
+        /// Exports reading order of all xhtml files from the ebook as a readingOrder.json file.
+        /// </summary>
+        protected virtual void SaveReadingOrder()
         {
             try
             {
@@ -311,7 +391,10 @@ namespace CL_EbookServerProcessor
             }
         }
 
-        protected override void SaveImagesToWorkingDirectory()
+        /// <summary>
+        /// Exports all images to output directory.
+        /// </summary>
+        protected virtual void SaveImagesToWorkingDirectory()
         {
             try
             {
@@ -339,6 +422,5 @@ namespace CL_EbookServerProcessor
                 Logger.LogMessage(exception);
             }
         }
-
     }
 }
