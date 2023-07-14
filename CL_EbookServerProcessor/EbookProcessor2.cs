@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.IO;
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using ExCSS;
 using NUglify;
@@ -28,10 +26,37 @@ namespace CL_EbookServerProcessor
             OpenEbook();
             CreateWorkingDirectory();
             SaveReadingOrder();
+            SaveStyleList();
             SaveImagesToWorkingDirectory();
             SaveCssStylesToWorkingDirectory();
             SaveFontsToWorkingDirectory();
             ProcessXhtmlFiles();
+        }
+
+        private void SaveStyleList()
+        {
+            try
+            {
+                var cssList = BookRef?.Content.Css.Local.Select(x => $"{ImageServer}{EbookGuid}/{StripFileName(x.Key)}");
+
+                if (WorkingDirectoryPath == null)
+                    throw new Exception("Working directory not set!");
+
+                if (cssList == null)
+                    throw new Exception("Css list not detected!");
+
+                var path = Path.Combine(WorkingDirectoryPath, "styleList.json");
+
+                var enumerable = cssList.ToList();
+                var json = JsonSerializer.Serialize(enumerable);
+
+                SaveFile(path, json);
+                Logger.LogMessage($"Saved file: {path} containing {enumerable.Count} entries.");
+            }
+            catch (Exception exception)
+            {
+                Logger.LogMessage(exception);
+            }
         }
 
         private static string StripFileName(string fileName)
@@ -199,7 +224,7 @@ namespace CL_EbookServerProcessor
             return htmlContent;
         }
 
-        private string RemoveToTag(string content, string tag)
+        private static string RemoveToTag(string content, string tag)
         {
             var index = content.IndexOf(tag, StringComparison.Ordinal);
             var count = index + tag.Length;
@@ -212,7 +237,7 @@ namespace CL_EbookServerProcessor
             return content.Remove(0, count);
         }
 
-        private string RemoveFromTag(string content, string tag)
+        private static string RemoveFromTag(string content, string tag)
         {
             var index = content.IndexOf(tag, StringComparison.Ordinal);
             var count = content.Length - index - tag.Length;
@@ -270,7 +295,7 @@ namespace CL_EbookServerProcessor
                     throw new Exception("Working directory not set!");
 
                 if (readingOrder == null)
-                    throw new Exception("Working directory not set!");
+                    throw new Exception("Reading order not detected!");
 
                 var path = Path.Combine(WorkingDirectoryPath, "readingOrder.json");
 
