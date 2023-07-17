@@ -8,7 +8,7 @@ namespace CL_EbookServerProcessor
 
         protected readonly Guid EbookGuid;
         protected readonly string EbookPath;
-        protected readonly string FileSaveLocation;
+        protected readonly string OutputPath;
         protected readonly string ResourceServer;
 
         protected EpubBookRef? BookRef;
@@ -16,11 +16,11 @@ namespace CL_EbookServerProcessor
         protected string? WorkingDirectoryPath;
 
 
-        protected BaseEbookProcessor(Guid ebookGuid, string ebookPath, string fileSaveLocation, string resourceServer, BaseLogger logger)
+        protected BaseEbookProcessor(Guid ebookGuid, string ebookPath, string outputPath, string resourceServer, BaseLogger logger)
         {
             EbookGuid = ebookGuid;
             EbookPath = ebookPath;
-            FileSaveLocation = fileSaveLocation;
+            OutputPath = outputPath;
             ResourceServer = resourceServer;
             Logger = logger;
 
@@ -38,7 +38,7 @@ namespace CL_EbookServerProcessor
         {
             try
             {
-                WorkingDirectoryPath = Path.Combine(FileSaveLocation, EbookGuid.ToString());
+                WorkingDirectoryPath = Path.Combine(OutputPath, EbookGuid.ToString());
 
                 if (Directory.Exists(WorkingDirectoryPath))
                 {

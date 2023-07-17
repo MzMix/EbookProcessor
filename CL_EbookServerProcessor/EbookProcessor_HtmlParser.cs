@@ -11,7 +11,7 @@ using HtmlNode = HtmlAgilityPack.HtmlNode;
 namespace CL_EbookServerProcessor
 {
     ///<summary>
-    ///Class <c>EbookProcessorHtmlParser</c> processes epub ebook using parsing based on <c>HtmlAgilityPack</c>, <c>NUglify</c>.
+    ///Class <c>EbookProcessorHtmlParser</c> processes epub ebook using parsing based on <c>HtmlAgilityPack</c> and <c>NUglify</c>.
     ///</summary>
     public class EbookProcessorHtmlParser : BaseEbookProcessor
     {

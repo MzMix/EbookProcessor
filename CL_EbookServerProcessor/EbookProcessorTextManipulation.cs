@@ -6,7 +6,7 @@ namespace CL_EbookServerProcessor
 {
     public class EbookProcessorTextManipulation : BaseEbookProcessor
     {
-        public EbookProcessorTextManipulation(Guid ebookGuid, string ebookPath, string fileSaveLocation, string resourceServer, BaseLogger logger) : base(ebookGuid, ebookPath, fileSaveLocation, resourceServer, logger)
+        public EbookProcessorTextManipulation(Guid ebookGuid, string ebookPath, string outputPath, string resourceServer, BaseLogger logger) : base(ebookGuid, ebookPath, outputPath, resourceServer, logger)
         {
         }
 
